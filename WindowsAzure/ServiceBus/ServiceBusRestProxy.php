@@ -898,7 +898,6 @@ class ServiceBusRestProxy extends ServiceRestProxy implements IServiceBus
      */
     public function deleteMessageByLockLocation(string $lockLocation)
     {
-        var_dump($lockLocation);
         $httpCallContext = new HttpCallContext();
         $httpCallContext->setMethod(Resources::HTTP_DELETE);
         $lockLocationArray = parse_url($lockLocation);

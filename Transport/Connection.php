@@ -30,6 +30,7 @@ class Connection
         'name_space'             => '',
         'queue_url'              => 'https://servicebus.windows.net',
         'shared_access_key_name' => null,
+        'subscription_name' => null,
         'shared_access_key'      => null,
         'entity_path'            => 'messages',
         'sslmode'                => null,
@@ -54,7 +55,7 @@ class Connection
      */
     private $buffer;
 
-    public function __construct(array $configuration, IServiceBus $serviceBus = null)
+	public function __construct(array $configuration, IServiceBus $serviceBus = null)
     {
         $this->configuration = array_replace_recursive(self::DEFAULT_OPTIONS, $configuration);
         $this->serviceBus    = $serviceBus ?? ServicesBuilder::getInstance()->createServiceBusService("");
@@ -114,6 +115,7 @@ class Connection
             'visibility_timeout' => $options['visibility_timeout'],
             'auto_setup'         => filter_var($options['auto_setup'], \FILTER_VALIDATE_BOOLEAN),
             'entity_path'        => (string)$options['entity_path'],
+            'subscription_name'  => (string) $options['subscription_name'],
         ];
 
         $parsedPath = explode('/', ltrim($parsedUrl['path'] ?? '/', '/'));
@@ -214,7 +216,7 @@ class Connection
             $options = new ReceiveMessageOptions();
             $options->setPeekLock();
             $this->currentResponse =
-                $this->serviceBus->receiveQueueMessage($this->configuration['entity_path'], $options);
+                $this->serviceBus->receiveSubscriptionMessage($this->configuration['entity_path'], $this->configuration['subscription_name'], $options);
         }
 
         if (!$this->fetchMessage()) {
@@ -229,13 +231,13 @@ class Connection
         if ($this->currentResponse) {
             $headers = [];
             if ($this->currentResponse->getContentType()) {
-                $headers['type'] = $this->currentResponse->getProperties();
+                $headers['type'] = $this->currentResponse->getContentType();
             }
 
             $this->buffer[] = [
                 'id'      => $this->currentResponse->getMessageId(),
                 'body'    => $this->currentResponse,
-                'headers' => json_encode($headers),
+                'headers' => $headers,
             ];
         }
 

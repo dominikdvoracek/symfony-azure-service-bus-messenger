@@ -11,7 +11,7 @@ namespace SanTran\Component\Messenger\Bridge\AzureServiceBus\Transport;
 use HttpException;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Exception\TransportException;
-use Symfony\Component\Messenger\Stamp\DelayStamp;
+use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
 use Symfony\Component\Messenger\Transport\Sender\SenderInterface;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 
@@ -31,16 +31,20 @@ class AzureServiceBusSender implements SenderInterface
      */
     public function send(Envelope $envelope): Envelope
     {
-        $encodedMessage = $this->serializer->encode($envelope);
+	    try {
+		    $encodedMessage = $this->serializer->encode($envelope);
+	    } catch (UnrecoverableMessageHandlingException $e) {
+		    return $envelope;
+	    }
 
-        try {
-            $this->connection->send(
-                $encodedMessage['body'],
-                $encodedMessage['headers'] ?? []
-            );
-        } catch (HttpException $e) {
-            throw new TransportException($e->getMessage(), 0, $e);
-        }
+	    try {
+		    $this->connection->send(
+			    $encodedMessage['body'],
+			    $encodedMessage['headers'] ?? []
+		    );
+	    } catch (HttpException $e) {
+		    throw new TransportException($e->getMessage(), 0, $e);
+	    }
 
         return $envelope;
     }
